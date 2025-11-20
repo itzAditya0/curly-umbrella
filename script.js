@@ -1,5 +1,5 @@
 // Configuration
-const PRODUCTION_WS_URL = 'wss://zero-logs.onrender.com/ws'; // WebSocket Secure URL with /ws path
+const PRODUCTION_WS_URL = 'wss://curly-umbrella-7375.onrender.com/ws'; // Your actual Render URL
 
 // State
 const state = {
