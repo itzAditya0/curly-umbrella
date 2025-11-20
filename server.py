@@ -173,10 +173,15 @@ async def handler(websocket): # Removed path argument for compatibility with new
 async def health_check(path, request_headers):
     """Handle health check requests from Render."""
     # Render sends HEAD/GET requests to check if the service is alive
-    # We need to accept these to prevent errors in logs
-    if path == "/health":
-        return http.HTTPStatus.OK, [], b"OK\n"
-    # For other paths, let the WebSocket handler take over
+    # Accept all HEAD requests (Render health checks)
+    method = request_headers.get("method", "GET")
+    
+    # If it's a HEAD or GET request to any path, return OK
+    # This prevents the "unsupported HTTP method" error
+    if method in ["HEAD", "GET"]:
+        return http.HTTPStatus.OK, [], b"WebSocket Server Running\n"
+    
+    # For WebSocket upgrade requests, return None to let the handler proceed
     return None
 
 async def main():
