@@ -87,89 +87,60 @@ git push -u origin main
 
 ---
 
-## Backend Deployment (Hostinger VPS)
+## Backend Deployment (Render.com - Free Tier)
 
-### 1. Connect to Your Hostinger VPS
+Render.com offers free hosting for backend services, perfect for our WebSocket server.
 
+### 1. Create `render.yaml` Configuration
+
+I've already created this file for you. It tells Render how to deploy your backend.
+
+### 2. Sign Up for Render
+
+1. Go to [Render.com](https://render.com)
+2. Click **"Get Started"**
+3. Sign up with GitHub (easier integration)
+
+### 3. Create New Web Service
+
+1. In Render dashboard, click **"New +"** → **"Web Service"**
+2. Click **"Connect" to your GitHub repository** (`SecureChat`)
+3. Configure:
+   - **Name**: `secchat-backend` (or any name)
+   - **Environment**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `python server.py`
+   - **Plan**: **Free** (select this!)
+
+4. Click **"Create Web Service"**
+
+Render will deploy your backend and give you a URL like:
+`https://secchat-backend.onrender.com`
+
+**Important**: The free tier sleeps after 15 minutes of inactivity. The first request after sleep takes ~30 seconds to wake up.
+
+### 4. Get Your WebSocket URL
+
+Your WebSocket URL will be:
+```
+wss://secchat-backend.onrender.com
+```
+
+**Note**: Render automatically provides HTTPS/WSS, so you don't need to configure SSL!
+
+### 5. Update Frontend Configuration
+
+Update `script.js` (line 1):
+```javascript
+const PRODUCTION_WS_URL = 'wss://secchat-backend.onrender.com';
+```
+
+Then commit and push to trigger Vercel redeployment:
 ```bash
-ssh username@your-vps-ip
+git add script.js
+git commit -m "Update WebSocket URL for production"
+git push origin main
 ```
-
-### 2. Install Dependencies
-
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install Python 3 and pip
-sudo apt install python3 python3-pip -y
-
-# Install virtualenv
-sudo pip3 install virtualenv
-```
-
-### 3. Clone Your Repository
-
-```bash
-cd ~
-git clone https://github.com/YOUR_USERNAME/SecureChat.git
-cd SecureChat
-```
-
-### 4. Set Up Python Virtual Environment
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 5. Test the Server
-
-```bash
-python server.py
-```
-
-Press `Ctrl+C` to stop. If it works, proceed to the next step.
-
-### 6. Create a Systemd Service (Auto-Start)
-
-Create a service file:
-
-```bash
-sudo nano /etc/systemd/system/secchat.service
-```
-
-Paste this content (replace `YOUR_USERNAME` with your VPS username):
-
-```ini
-[Unit]
-Description=Secure Chat WebSocket Server
-After=network.target
-
-[Service]
-User=YOUR_USERNAME
-WorkingDirectory=/home/YOUR_USERNAME/SecureChat
-Environment="PATH=/home/YOUR_USERNAME/SecureChat/venv/bin"
-ExecStart=/home/YOUR_USERNAME/SecureChat/venv/bin/python server.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Save and exit (`Ctrl+X`, then `Y`, then `Enter`).
-
-### 7. Start the Service
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl start secchat
-sudo systemctl enable secchat
-sudo systemctl status secchat
-```
-
-The server is now running on port `8765`.
 
 ---
 
