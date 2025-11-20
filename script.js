@@ -1,5 +1,5 @@
 // Configuration
-const PRODUCTION_WS_URL = 'wss://zero-logs.onrender.com'; // WebSocket Secure URL
+const PRODUCTION_WS_URL = 'wss://zero-logs.onrender.com/ws'; // WebSocket Secure URL with /ws path
 
 // State
 const state = {
