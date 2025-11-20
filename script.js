@@ -1,5 +1,7 @@
 // Configuration
-const PRODUCTION_WS_URL = 'wss://curly-umbrella-7375.onrender.com/ws'; // Your actual Render URL
+const IS_LOCALHOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const PRODUCTION_WS_URL = 'wss://curly-umbrella-7375.onrender.com/ws';
+const WS_URL = IS_LOCALHOST ? 'ws://localhost:8765' : PRODUCTION_WS_URL;
 
 // State
 const state = {
@@ -260,8 +262,8 @@ async function initializeKeys(pubArmored, privArmored, passphrase) {
 // --- WebSocket & Chat Logic ---
 
 function connectWebSocket() {
-    const wsUrl = PRODUCTION_WS_URL || 'ws://localhost:8765';
-    state.socket = new WebSocket(wsUrl);
+    console.log('Connecting to WebSocket:', WS_URL);
+    state.socket = new WebSocket(WS_URL);
 
     state.socket.onopen = () => {
         els.connectionStatus.className = 'status-indicator online';
@@ -308,18 +310,60 @@ async function handleServerMessage(data) {
             break;
 
         case 'FRIEND_REQUEST':
+            console.log('Received FRIEND_REQUEST from:', data.from);
+            console.log('Received Public Key:', data.publicKey ? data.publicKey.substring(0, 50) + '...' : 'MISSING');
+
+            // Receive friend request with their public key
             if (confirm(`Accept friend request from ${data.from}?`)) {
-                state.socket.send(JSON.stringify({
-                    type: 'ACCEPT_FRIEND',
-                    to: data.from
-                }));
-                addFriend(data.from);
+                try {
+                    if (!data.publicKey) throw new Error('Missing public key from sender');
+
+                    // Store their public key
+                    const theirPublicKey = await openpgp.readKey({ armoredKey: data.publicKey });
+
+                    // Send acceptance with YOUR public key
+                    state.socket.send(JSON.stringify({
+                        type: 'ACCEPT_FRIEND',
+                        to: data.from,
+                        publicKey: state.publicKeyArmored
+                    }));
+
+                    // Add friend with their key
+                    state.friends[data.from] = {
+                        publicKey: theirPublicKey,
+                        messages: []
+                    };
+                    renderFriendsList();
+                    alert(`${data.from} added! You can now chat securely.`);
+                } catch (err) {
+                    console.error('Invalid public key from friend:', err);
+                    console.log('Full received key:', data.publicKey);
+                    alert(`Failed to add friend: ${err.message}`);
+                }
             }
             break;
 
         case 'FRIEND_ACCEPTED':
-            addFriend(data.from);
-            alert(`${data.from} accepted your friend request!`);
+            console.log('Received FRIEND_ACCEPTED from:', data.from);
+            console.log('Received Public Key:', data.publicKey ? data.publicKey.substring(0, 50) + '...' : 'MISSING');
+
+            // Friend accepted, receive their public key
+            try {
+                if (!data.publicKey) throw new Error('Missing public key from friend');
+
+                const theirPublicKey = await openpgp.readKey({ armoredKey: data.publicKey });
+
+                if (!state.friends[data.from]) {
+                    state.friends[data.from] = { publicKey: null, messages: [] };
+                }
+                state.friends[data.from].publicKey = theirPublicKey;
+                renderFriendsList();
+                alert(`${data.from} accepted your friend request! You can now chat securely.`);
+            } catch (err) {
+                console.error('Invalid public key from friend:', err);
+                console.log('Full received key:', data.publicKey);
+                alert(`Friend accepted but key exchange failed: ${err.message}`);
+            }
             break;
 
         case 'MESSAGE':
@@ -418,7 +462,7 @@ function handleTyping(fromId) {
     }
 }
 
-// Add Friend
+// Add Friend - Send request with public key
 if (els.addFriendBtn) {
     els.addFriendBtn.addEventListener('click', async () => {
         const friendId = els.friendIdInput.value.trim().toUpperCase();
@@ -434,19 +478,31 @@ if (els.addFriendBtn) {
             return;
         }
 
-        // Send friend request to server
-        state.socket.send(JSON.stringify({ type: 'ADD_FRIEND', to: friendId }));
+        if (!state.publicKeyArmored) {
+            alert('Error: Your public key is not loaded. Please reconnect.');
+            return;
+        }
 
-        // Add friend to list (without public key yet)
+        console.log('Sending friend request to:', friendId);
+        console.log('My Public Key:', state.publicKeyArmored.substring(0, 50) + '...');
+
+        // Send friend request with your public key
+        state.socket.send(JSON.stringify({
+            type: 'ADD_FRIEND',
+            to: friendId,
+            publicKey: state.publicKeyArmored // Send your public key
+        }));
+
+        // Add friend to list (without their key yet)
         state.friends[friendId] = { publicKey: null, messages: [] };
         renderFriendsList();
         els.friendIdInput.value = '';
 
-        alert(`Friend request sent to ${friendId}`);
+        alert(`Friend request sent to ${friendId}. Awaiting acceptance...`);
     });
 }
 
-function addFriend(id) {
+function addFriend(id, publicKeyArmored = null) {
     if (!state.friends[id]) {
         alert(`Friend ${id} added. Please click their name to upload their Public Key.`);
         state.friends[id] = { publicKey: null, messages: [] };
@@ -477,29 +533,16 @@ function renderFriendsList() {
     els.friendsList.innerHTML = '';
     Object.keys(state.friends).forEach(id => {
         const li = document.createElement('li');
-        li.textContent = id;
+        const hasKey = state.friends[id].publicKey ? '🔐' : '⏳';
+        li.textContent = `${hasKey} ${id}`;
         if (id === state.currentChatId) li.classList.add('active');
 
-        li.addEventListener('click', async () => {
+        li.addEventListener('click', () => {
             if (!state.friends[id].publicKey) {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.onchange = async e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        try {
-                            const keyText = await file.text();
-                            state.friends[id].publicKey = await openpgp.readKey({ armoredKey: keyText });
-                            selectFriend(id);
-                        } catch (err) {
-                            alert('Invalid Public Key file');
-                        }
-                    }
-                };
-                input.click();
-            } else {
-                selectFriend(id);
+                alert(`Waiting for ${id} to accept your friend request or exchange keys...`);
+                return;
             }
+            selectFriend(id);
         });
         els.friendsList.appendChild(li);
     });

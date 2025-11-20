@@ -129,7 +129,8 @@ async def websocket_handler_route(request):
                             target_ws = connected_clients[target_id]
                             await target_ws.send_json({
                                 'type': 'FRIEND_REQUEST',
-                                'from': user_id
+                                'from': user_id,
+                                'publicKey': data.get('publicKey')  # Forward public key
                             })
                             logger.info(f"Friend request sent from {user_id} to {target_id}")
 
@@ -142,7 +143,8 @@ async def websocket_handler_route(request):
                             requester_ws = connected_clients[requester_id]
                             await requester_ws.send_json({
                                 'type': 'FRIEND_ACCEPTED',
-                                'from': user_id
+                                'from': user_id,
+                                'publicKey': data.get('publicKey')  # Forward public key
                             })
                             logger.info(f"Friendship established between {user_id} and {requester_id}")
 
