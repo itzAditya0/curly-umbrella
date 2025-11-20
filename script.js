@@ -1,5 +1,5 @@
 // Configuration
-const PRODUCTION_WS_URL = 'https://zero-logs.onrender.com'; // Set to wss://your-server.com for production
+const PRODUCTION_WS_URL = 'wss://zero-logs.onrender.com'; // WebSocket Secure URL
 
 // State
 const state = {
