@@ -3,6 +3,7 @@ import json
 import websockets
 import secrets
 import logging
+import http
 
 # Configure logging
 logging.basicConfig(
@@ -169,9 +170,24 @@ async def handler(websocket): # Removed path argument for compatibility with new
     finally:
         await unregister(user_id)
 
+async def health_check(path, request_headers):
+    """Handle health check requests from Render."""
+    # Render sends HEAD/GET requests to check if the service is alive
+    # We need to accept these to prevent errors in logs
+    if path == "/health":
+        return http.HTTPStatus.OK, [], b"OK\n"
+    # For other paths, let the WebSocket handler take over
+    return None
+
 async def main():
     # Listen on all interfaces
-    async with websockets.serve(handler, "0.0.0.0", 8765):
+    # The process_request parameter handles non-WebSocket requests
+    async with websockets.serve(
+        handler, 
+        "0.0.0.0", 
+        8765,
+        process_request=health_check
+    ):
         logger.info("Secure Chat Server started on port 8765")
         await asyncio.Future()  # run forever
 
