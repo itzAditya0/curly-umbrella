@@ -12,7 +12,21 @@ const state = {
     socket: null,
     typingTimeout: null,
     incomingFiles: {}, // { fromId: { name, size, mime, chunks: [], receivedSize: 0 } }
-    keyFiles: { public: null, private: null }
+    keyFiles: { public: null, private: null },
+
+    // Mobile View Helper
+    setMobileView(view) {
+        const sidebar = document.querySelector('.sidebar');
+        const chatArea = document.querySelector('.chat-area');
+
+        if (view === 'chat') {
+            sidebar?.classList.add('hidden-mobile');
+            chatArea?.classList.add('active-mobile');
+        } else {
+            sidebar?.classList.remove('hidden-mobile');
+            chatArea?.classList.remove('active-mobile');
+        }
+    }
 };
 
 // Audio
@@ -273,6 +287,18 @@ if (els.logoutBtn) {
     });
 }
 
+// Mobile Back Button
+const mobileBackBtn = document.getElementById('mobile-back-btn');
+if (mobileBackBtn) {
+    mobileBackBtn.addEventListener('click', () => {
+        state.setMobileView('list');
+        // Optionally hide chat interface
+        els.chatInterface.classList.add('hidden');
+        els.emptyState.classList.remove('hidden');
+        state.currentChatId = null;
+    });
+}
+
 async function handleServerMessage(data) {
     switch (data.type) {
         case 'WELCOME':
@@ -395,33 +421,28 @@ function handleTyping(fromId) {
 // Add Friend
 if (els.addFriendBtn) {
     els.addFriendBtn.addEventListener('click', async () => {
-        const friendId = els.friendIdInput.value.trim();
+        const friendId = els.friendIdInput.value.trim().toUpperCase();
         if (!friendId) return;
 
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.onchange = async e => {
-            const file = e.target.files[0];
-            if (file) {
-                const keyText = await file.text();
-                try {
-                    const key = await openpgp.readKey({ armoredKey: keyText });
+        if (friendId === state.myId) {
+            alert('You cannot add yourself as a friend!');
+            return;
+        }
 
-                    state.socket.send(JSON.stringify({ type: 'ADD_FRIEND', to: friendId }));
+        if (state.friends[friendId]) {
+            alert('Friend already added!');
+            return;
+        }
 
-                    state.friends[friendId] = {
-                        publicKey: key,
-                        messages: []
-                    };
-                    renderFriendsList();
-                    els.friendIdInput.value = '';
+        // Send friend request to server
+        state.socket.send(JSON.stringify({ type: 'ADD_FRIEND', to: friendId }));
 
-                } catch (err) {
-                    alert('Invalid Public Key file');
-                }
-            }
-        };
-        input.click();
+        // Add friend to list (without public key yet)
+        state.friends[friendId] = { publicKey: null, messages: [] };
+        renderFriendsList();
+        els.friendIdInput.value = '';
+
+        alert(`Friend request sent to ${friendId}`);
     });
 }
 
@@ -431,38 +452,6 @@ function addFriend(id) {
         state.friends[id] = { publicKey: null, messages: [] };
     }
     renderFriendsList();
-}
-
-function renderFriendsList() {
-    els.friendsList.innerHTML = '';
-    Object.keys(state.friends).forEach(id => {
-        const li = document.createElement('li');
-        li.textContent = id;
-        if (id === state.currentChatId) li.classList.add('active');
-
-        li.addEventListener('click', async () => {
-            if (!state.friends[id].publicKey) {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.onchange = async e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        try {
-                            const keyText = await file.text();
-                            state.friends[id].publicKey = await openpgp.readKey({ armoredKey: keyText });
-                            selectChat(id);
-                        } catch (err) {
-                            alert('Invalid Public Key file');
-                        }
-                    }
-                };
-                input.click();
-            } else {
-                selectChat(id);
-            }
-        });
-        els.friendsList.appendChild(li);
-    });
 }
 
 function selectFriend(friendId) {
@@ -482,6 +471,38 @@ function selectFriend(friendId) {
 
     // Switch to chat view on mobile
     state.setMobileView('chat');
+}
+
+function renderFriendsList() {
+    els.friendsList.innerHTML = '';
+    Object.keys(state.friends).forEach(id => {
+        const li = document.createElement('li');
+        li.textContent = id;
+        if (id === state.currentChatId) li.classList.add('active');
+
+        li.addEventListener('click', async () => {
+            if (!state.friends[id].publicKey) {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.onchange = async e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        try {
+                            const keyText = await file.text();
+                            state.friends[id].publicKey = await openpgp.readKey({ armoredKey: keyText });
+                            selectFriend(id);
+                        } catch (err) {
+                            alert('Invalid Public Key file');
+                        }
+                    }
+                };
+                input.click();
+            } else {
+                selectFriend(id);
+            }
+        });
+        els.friendsList.appendChild(li);
+    });
 }
 
 // Copy ID
