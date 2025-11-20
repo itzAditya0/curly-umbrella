@@ -1,5 +1,9 @@
+```json
 {
     "version": 2,
+    "github": {
+        "silent": true
+    },
     "builds": [
         {
             "src": "index.html",
@@ -13,3 +17,4 @@
         }
     ]
 }
+```
