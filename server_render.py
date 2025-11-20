@@ -195,11 +195,9 @@ async def start_server():
     """Start combined HTTP/WebSocket server on port 8765."""
     app = web.Application()
     
-    # Health check routes (for HEAD and GET)
+    # Health check routes (GET automatically handles HEAD)
     app.router.add_get('/health', http_health_check)
-    app.router.add_head('/health', http_health_check)
     app.router.add_get('/', http_health_check)
-    app.router.add_head('/', http_health_check)
     
     # WebSocket route
     app.router.add_get('/ws', websocket_handler_route)
