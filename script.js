@@ -1,8 +1,22 @@
 // Configuration
 const IS_LOCALHOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const IS_RENDER = window.location.hostname.includes('onrender.com');
 const PRODUCTION_WS_URL = 'wss://curly-umbrella-7375.onrender.com/ws';
-// When serving from the same server, we can use relative protocol
-const WS_URL = IS_LOCALHOST ? `ws://${window.location.host}/ws` : PRODUCTION_WS_URL;
+
+// Smart WebSocket URL detection
+let WS_URL;
+if (IS_LOCALHOST) {
+    // Local development
+    WS_URL = `ws://${window.location.host}/ws`;
+} else if (IS_RENDER) {
+    // Deployed on Render - use same-origin WebSocket
+    WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
+} else {
+    // External deployment (e.g., Vercel) - use hardcoded backend URL
+    WS_URL = PRODUCTION_WS_URL;
+}
+
+console.log(`🔗 WebSocket URL: ${WS_URL}`);
 
 // State
 const state = {
@@ -263,38 +277,46 @@ async function initializeKeys(pubArmored, privArmored, passphrase) {
 // --- WebSocket & Chat Logic ---
 
 function connectWebSocket() {
-    console.log(`Connecting to WebSocket: ${WS_URL}`);
+    console.log(`🔌 Connecting to WebSocket: ${WS_URL}`);
     try {
         state.socket = new WebSocket(WS_URL);
     } catch (e) {
-        console.error(`WebSocket creation failed: ${e}`);
-        alert('Failed to create WebSocket connection. Check console.');
+        console.error(`❌ WebSocket creation failed:`, e);
+        alert('Failed to create WebSocket connection. Check console for details.');
         return;
     }
 
     state.socket.onopen = () => {
-        console.log('WebSocket Connected!');
+        console.log('✅ WebSocket Connected!');
         els.connectionStatus.className = 'status-indicator online';
         els.connectionStatus.title = 'Online';
     };
 
     state.socket.onclose = (event) => {
-        console.log(`WebSocket Closed: ${event.code} ${event.reason}`);
+        console.log(`❌ WebSocket Closed: Code ${event.code}, Reason: ${event.reason || 'None'}`);
         els.connectionStatus.className = 'status-indicator offline';
         els.connectionStatus.title = 'Offline';
+
+        // Alert user if unexpected disconnect
+        if (event.code !== 1000) {
+            alert(`WebSocket connection closed unexpectedly. Code: ${event.code}\nPlease refresh the page.`);
+        }
     };
 
     state.socket.onerror = (error) => {
-        console.error(`WebSocket Error: ${error}`);
+        console.error(`❌ WebSocket Error:`, error);
         els.connectionStatus.className = 'status-indicator offline';
+        alert('WebSocket connection error! Please check:\n1. Backend is running\n2. Correct WebSocket URL\n3. Network connection');
     };
 
     state.socket.onmessage = async (event) => {
         try {
+            console.log('📨 Raw WebSocket message:', event.data);
             const data = JSON.parse(event.data);
+            console.log('📨 Parsed message type:', data.type, data);
             await handleServerMessage(data);
         } catch (err) {
-            console.error(`Error handling message: ${err}`);
+            console.error(`❌ Error handling message:`, err);
         }
     };
 }
