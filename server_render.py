@@ -3,6 +3,7 @@ import json
 import secrets
 import logging
 from aiohttp import web
+import aiohttp_cors
 
 # Configure logging
 logging.basicConfig(
@@ -122,6 +123,7 @@ async def websocket_handler_route(request):
                 try:
                     data = json.loads(msg.data)
                     msg_type = data.get('type')
+                    print(f"Received message: {msg_type}, Keys: {list(data.keys())}", flush=True) # Debug log
 
                     if msg_type == 'ADD_FRIEND':
                         target_id = data.get('to')
@@ -199,10 +201,31 @@ async def start_server():
     
     # Health check routes (GET automatically handles HEAD)
     app.router.add_get('/health', http_health_check)
-    app.router.add_get('/', http_health_check)
     
-    # WebSocket route
+    # WebSocket
     app.router.add_get('/ws', websocket_handler_route)
+    
+    # Static Files
+    # Serve index.html at root
+    async def index(request):
+        return web.FileResponse('./index.html')
+        
+    app.router.add_get('/', index)
+    
+    # Serve other static files
+    app.router.add_static('/', path='.', show_index=True)
+    
+    # CORS setup (optional but good practice)
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+        )
+    })
+    
+    for route in list(app.router.routes()):
+        cors.add(route)
     
     runner = web.AppRunner(app)
     await runner.setup()

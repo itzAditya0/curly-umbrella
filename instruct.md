@@ -108,6 +108,12 @@ I've already created this file for you. It tells Render how to deploy your backe
 3. Configure:
    - **Name**: `secchat-backend` (or any name)
    - **Environment**: `Python 3`
+## Local Development
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the unified server: `python server_render.py`
+3. Open `http://localhost:8765` in your browser.
+
+(No need to run a separate http.server anymore!)
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `python server.py`
    - **Plan**: **Free** (select this!)

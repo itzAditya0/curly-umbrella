@@ -1,7 +1,8 @@
 // Configuration
 const IS_LOCALHOST = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const PRODUCTION_WS_URL = 'wss://curly-umbrella-7375.onrender.com/ws';
-const WS_URL = IS_LOCALHOST ? 'ws://localhost:8765' : PRODUCTION_WS_URL;
+// When serving from the same server, we can use relative protocol
+const WS_URL = IS_LOCALHOST ? `ws://${window.location.host}/ws` : PRODUCTION_WS_URL;
 
 // State
 const state = {
@@ -262,22 +263,39 @@ async function initializeKeys(pubArmored, privArmored, passphrase) {
 // --- WebSocket & Chat Logic ---
 
 function connectWebSocket() {
-    console.log('Connecting to WebSocket:', WS_URL);
-    state.socket = new WebSocket(WS_URL);
+    console.log(`Connecting to WebSocket: ${WS_URL}`);
+    try {
+        state.socket = new WebSocket(WS_URL);
+    } catch (e) {
+        console.error(`WebSocket creation failed: ${e}`);
+        alert('Failed to create WebSocket connection. Check console.');
+        return;
+    }
 
     state.socket.onopen = () => {
+        console.log('WebSocket Connected!');
         els.connectionStatus.className = 'status-indicator online';
         els.connectionStatus.title = 'Online';
     };
 
-    state.socket.onclose = () => {
+    state.socket.onclose = (event) => {
+        console.log(`WebSocket Closed: ${event.code} ${event.reason}`);
         els.connectionStatus.className = 'status-indicator offline';
         els.connectionStatus.title = 'Offline';
     };
 
+    state.socket.onerror = (error) => {
+        console.error(`WebSocket Error: ${error}`);
+        els.connectionStatus.className = 'status-indicator offline';
+    };
+
     state.socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        await handleServerMessage(data);
+        try {
+            const data = JSON.parse(event.data);
+            await handleServerMessage(data);
+        } catch (err) {
+            console.error(`Error handling message: ${err}`);
+        }
     };
 }
 
@@ -302,6 +320,7 @@ if (mobileBackBtn) {
 }
 
 async function handleServerMessage(data) {
+    console.log('Received Message:', data.type, data);
     switch (data.type) {
         case 'WELCOME':
             state.myId = data.userId; // Server sends 'userId'
@@ -482,9 +501,6 @@ if (els.addFriendBtn) {
             alert('Error: Your public key is not loaded. Please reconnect.');
             return;
         }
-
-        console.log('Sending friend request to:', friendId);
-        console.log('My Public Key:', state.publicKeyArmored.substring(0, 50) + '...');
 
         // Send friend request with your public key
         state.socket.send(JSON.stringify({
