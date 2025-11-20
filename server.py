@@ -121,6 +121,31 @@ async def handle_message(websocket, message, user_id):
                     'message': 'You are not friends with this user.'
                 }))
 
+        elif msg_type == 'TYPING':
+            recipient_id = data.get('to')
+            if recipient_id in connected_clients:
+                recipient_ws = connected_clients[recipient_id]
+                await recipient_ws.send(json.dumps({
+                    'type': 'TYPING',
+                    'from': user_id
+                }))
+
+        elif msg_type in ['FILE_START', 'FILE_CHUNK', 'FILE_END']:
+            recipient_id = data.get('to')
+            if recipient_id in connected_clients:
+                recipient_ws = connected_clients[recipient_id]
+                # Forward the entire payload to the recipient
+                # We don't need to inspect the content, just route it
+                data['from'] = user_id # Ensure sender ID is attached
+                await recipient_ws.send(json.dumps(data))
+            else:
+                 # Only send error on START to avoid spamming errors for every chunk
+                if msg_type == 'FILE_START':
+                    await websocket.send(json.dumps({
+                        'type': 'ERROR',
+                        'message': 'User is offline. File transfer failed.'
+                    }))
+
     except json.JSONDecodeError:
         logger.error(f"Invalid JSON received from {user_id}")
     except Exception as e:

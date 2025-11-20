@@ -1,58 +1,43 @@
-# Secure Chat Platform Implementation Plan
+# UI Redesign & Bug Fix Implementation Plan
 
-## Goal Description
-Build a secure, zero-knowledge, real-time messaging platform using Python WebSockets and client-side OpenPGP encryption. The server acts only as a router, and the client handles all cryptography.
+## Goal
+Redesign the Secure Chat interface to match the provided "Dark Grid" reference, fix the message sending refresh bug, and add logout functionality.
 
 ## User Review Required
 > [!IMPORTANT]
-> - **OpenPGP.js**: I will use the OpenPGP.js library via CDN (cdnjs) for the client.
-> - **Ephemeral Storage**: The server will store active connections in memory only. If the server restarts, all connections and friend pairings are lost (as per "No Persistent User Accounts").
-> - **SSL/TLS**: For local development, we will use `ws://`. Production would require `wss://` and a reverse proxy (Nginx) as noted in the prompt, but I will implement the core application first.
+> **UI Overhaul**: The entire `index.html` and `style.css` will be rewritten to match the reference image.
+> **Logout**: "Logout" will disconnect the WebSocket, clear memory keys, and return to the initial setup screen. It will NOT delete the keys from the user's computer (since we don't store them persistently anyway).
 
 ## Proposed Changes
 
-### Backend (Python)
-#### [NEW] [server.py](file:///Users/itzaditya/Codez/SecChat/server.py)
-- WebSocket server implementation using `websockets` and `asyncio`.
-- **Features**:
-    - Connection handling & ID generation (6-char random).
-    - Message routing (JSON payloads).
-    - Event types: `CONNECT`, `FRIEND_REQUEST`, `FRIEND_ACCEPT`, `MESSAGE`, `DISCONNECT`.
-    - In-memory store: `connected_clients = {id: websocket}`, `friendships = {id: [friend_ids]}`.
+### Frontend
+#### [MODIFY] [index.html](file:///Users/itzaditya/Codez/SecChat/index.html)
+- **Structure**:
+    - **Background**: Grid pattern.
+    - **Header**: "PGP Secure Chat" + Status + GitHub Link.
+    - **Layout**: Two-column grid (Sidebar 300px, Chat 1fr).
+    - **Sidebar**:
+        - Search Bar.
+        - "Your ID" Card.
+        - Accordion Menu: "PGP Keys" (Setup), "Add Friend", "Friends List".
+    - **Chat Area**:
+        - Empty State / Chat Messages.
+        - Bottom Input Bar (Textarea + Send Button).
+- **Logout**: Add a Logout button in the Header or Settings.
 
-#### [NEW] [requirements.txt](file:///Users/itzaditya/Codez/SecChat/requirements.txt)
-- `websockets`
+#### [MODIFY] [style.css](file:///Users/itzaditya/Codez/SecChat/style.css)
+- **Theme**: Dark Mode, Grid Background, Rounded Corners, Subtle Borders.
+- **Components**:
+    - Accordions for sidebar sections.
+    - Modern input fields.
+    - Glassmorphism effects if applicable.
 
-### Frontend (HTML/CSS/JS)
-#### [NEW] [index.html](file:///Users/itzaditya/Codez/SecChat/index.html)
-- Single Page Application structure.
-- Sections:
-    - **Landing/Setup**: Key upload (Public/Private) + Passphrase.
-    - **Dashboard**: User ID display, Add Friend input, Friends List, Chat Window.
-- Import OpenPGP.js from CDN.
-
-#### [NEW] [style.css](file:///Users/itzaditya/Codez/SecChat/style.css)
-- **Theme**: Terminal/Cyberpunk aesthetic.
-- Dark background, monospaced fonts (Google Fonts: 'JetBrains Mono' or similar), neon accents (green/cyan).
-- Responsive layout (Flexbox/Grid).
-
-#### [NEW] [script.js](file:///Users/itzaditya/Codez/SecChat/script.js)
-- **State Management**: Store current user keys (decrypted private key object), session ID, friends list.
-- **WebSocket**: Handle connection, automatic reconnection, message dispatching.
-- **PGP Logic**:
-    - `openpgp.readKey`, `openpgp.decryptKey`.
-    - `openpgp.encrypt`, `openpgp.decrypt`.
-    - Verify public keys.
+#### [MODIFY] [script.js](file:///Users/itzaditya/Codez/SecChat/script.js)
+- **Bug Fix**: Ensure `sendMessage` does not trigger a page refresh (likely due to form submission or unhandled event).
+- **Logout Logic**: `socket.close()`, reset `state` object, toggle UI visibility.
+- **UI Logic**: Handle accordion toggles.
 
 ## Verification Plan
-
-### Automated Tests
-- I will create a simple python test script `test_server.py` to connect two clients to the websocket server and verify message routing.
-
-### Manual Verification
-1.  Start `server.py`.
-2.  Open `index.html` in two separate browser windows (or Incognito).
-3.  **User A**: Upload keys, get ID.
-4.  **User B**: Upload keys, get ID.
-5.  **Friend Request**: User A adds User B. User B accepts.
-6.  **Chat**: Exchange messages. Verify text is encrypted in network tab (if possible to inspect) or just verify end-to-end delivery.
+1.  **Visual Check**: Compare result with reference image.
+2.  **Bug Check**: Send a message and ensure page DOES NOT reload.
+3.  **Feature Check**: Click Logout and verify return to setup screen.

@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.log
+.DS_Store
+
+# PGP Keys (user-generated)
+*.asc
+*.pgp
+*.key
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.env
+venv/
+*.log

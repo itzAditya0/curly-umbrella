@@ -1,94 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SECURE_CHAT // TERMINAL</title>
+    <title>Secure Chat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- OpenPGP.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/5.5.0/openpgp.min.js"></script>
+    <script src="openpgp.min.js"></script>
 </head>
+
 <body>
-    <div class="scanlines"></div>
-    <div class="app-container">
-        <header>
-            <h1 class="glitch" data-text="SECURE_CHAT">SECURE_CHAT</h1>
-            <div id="connection-status" class="status offline">OFFLINE</div>
+    <div class="grid-bg"></div>
+
+    <div class="app-wrapper">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="lock-icon">🔒</span>
+                <h1>Secure Chat</h1>
+            </div>
+            <div class="header-controls">
+                <div id="connection-status" class="status-indicator offline" title="Offline"></div>
+                <button id="logout-btn" class="btn-icon hidden" title="Logout">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
         </header>
 
-        <!-- Setup Section -->
-        <section id="setup-section" class="active">
-            <div class="panel">
-                <h2>> INITIALIZE_KEYS</h2>
-                <p class="info-text">Upload your PGP key pair to begin secure session.</p>
-                
-                <div class="input-group">
-                    <label for="public-key-file">PUBLIC_KEY (.asc)</label>
-                    <input type="file" id="public-key-file" accept=".asc,.gpg">
-                </div>
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Setup / Settings Section -->
+                <div class="sidebar-section">
+                    <div class="section-header" id="toggle-settings">
+                        <span>🛠 Settings, Friends & PGP Keys</span>
+                    </div>
 
-                <div class="input-group">
-                    <label for="private-key-file">PRIVATE_KEY (.asc)</label>
-                    <input type="file" id="private-key-file" accept=".asc,.gpg">
-                </div>
+                    <div id="settings-content" class="section-content">
+                        <!-- Setup Form (Visible initially) -->
+                        <div id="setup-form">
+                            <div id="drop-zone" class="drop-zone">
+                                <p class="drop-text">Drag & Drop Keys</p>
+                                <input type="file" id="public-key-file" hidden>
+                                <input type="file" id="private-key-file" hidden>
+                            </div>
+                            <div class="input-group">
+                                <input type="password" id="passphrase" placeholder="Passphrase">
+                            </div>
+                            <div class="actions">
+                                <button id="connect-btn" class="btn primary">Connect</button>
+                                <button id="show-gen-btn" class="btn secondary">Generate New Keys</button>
+                            </div>
+                            <div id="setup-error" class="error-msg"></div>
+                        </div>
 
-                <div class="input-group">
-                    <label for="passphrase">PASSPHRASE</label>
-                    <input type="password" id="passphrase" placeholder="Enter private key passphrase">
-                </div>
-
-                <button id="connect-btn" class="btn primary">ESTABLISH_UPLINK</button>
-                <div id="setup-error" class="error-msg"></div>
-            </div>
-        </section>
-
-        <!-- Dashboard Section -->
-        <section id="dashboard-section" class="hidden">
-            <div class="grid-layout">
-                <!-- Sidebar -->
-                <aside class="sidebar">
-                    <div class="user-info panel">
-                        <h3>> IDENTITY</h3>
-                        <div class="id-display">
-                            <span id="my-user-id">Loading...</span>
-                            <button id="copy-id-btn" class="btn-icon" title="Copy ID">[CPY]</button>
+                        <!-- Key Gen Form (Hidden) -->
+                        <div id="gen-panel" class="hidden">
+                            <div class="input-group">
+                                <input type="text" id="gen-name" placeholder="Alias / Name">
+                            </div>
+                            <div class="input-group">
+                                <input type="password" id="gen-passphrase" placeholder="New Passphrase">
+                            </div>
+                            <div class="actions">
+                                <button id="generate-btn" class="btn primary">Generate</button>
+                                <button id="cancel-gen-btn" class="btn secondary">Cancel</button>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="friends-panel panel">
-                        <h3>> NETWORK_NODES</h3>
-                        <div class="add-friend-box">
-                            <input type="text" id="friend-id-input" placeholder="TARGET_ID" maxlength="6">
-                            <button id="add-friend-btn" class="btn small">ADD</button>
+                <!-- User ID Card -->
+                <div class="user-card hidden" id="user-card">
+                    <div class="card-header">
+                        <span>Your ID</span>
+                        <button id="copy-id-btn" class="btn-icon-small" title="Copy">📋</button>
+                    </div>
+                    <div class="id-display">
+                        <span id="my-user-id">...</span>
+                    </div>
+                </div>
+
+                <!-- Add Friend -->
+                <div class="sidebar-section hidden" id="add-friend-section">
+                    <div class="section-header">
+                        <span>Add Friend</span>
+                        <span class="icon">+</span>
+                    </div>
+                    <div class="section-content">
+                        <div class="input-row">
+                            <input type="text" id="friend-id-input" placeholder="Friend ID" maxlength="6">
+                            <button id="add-friend-btn" class="btn-icon-box">+</button>
                         </div>
-                        <ul id="friends-list">
-                            <!-- Friends will be added here -->
-                        </ul>
                     </div>
-                </aside>
+                </div>
 
-                <!-- Chat Area -->
-                <main class="chat-area panel">
-                    <div id="chat-header" class="chat-header">
-                        <span id="current-chat-name">> NO_TARGET_SELECTED</span>
+                <!-- Friends List -->
+                <div class="sidebar-section flex-grow hidden" id="friends-section">
+                    <div class="section-header">
+                        <span>Friends</span>
+                        <span class="icon">+</span>
                     </div>
-                    
+                    <ul id="friends-list" class="friends-list">
+                        <!-- Friends go here -->
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Chat Area -->
+            <section class="chat-area">
+                <div id="empty-state" class="empty-state">
+                    <p>Connect to server and select a friend to start secure chatting</p>
+                </div>
+
+                <div id="chat-interface" class="chat-interface hidden">
+                    <div class="chat-header-bar">
+                        <span id="current-chat-name">User ID</span>
+                        <span id="typing-indicator" class="typing-indicator"></span>
+                    </div>
+
                     <div id="messages-container" class="messages-container">
-                        <!-- Messages go here -->
-                        <div class="system-msg">System initialized. Waiting for input...</div>
+                        <!-- Messages -->
                     </div>
 
                     <div class="input-area">
-                        <textarea id="message-input" placeholder="Type encrypted message..." disabled></textarea>
-                        <button id="send-btn" class="btn" disabled>SEND</button>
+                        <input type="file" id="file-input" hidden>
+                        <button id="attach-btn" class="btn-icon-large" title="Attach File">📎</button>
+                        <textarea id="message-input" placeholder="Type your encrypted message..."></textarea>
+                        <button id="send-btn" class="btn primary send-btn">🔒 Send</button>
                     </div>
-                </main>
-            </div>
-        </section>
+                </div>
+            </section>
+        </main>
     </div>
     <script src="script.js"></script>
 </body>
+
 </html>
