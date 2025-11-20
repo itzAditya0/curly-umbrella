@@ -477,3 +477,90 @@ input:focus {
     font-size: 0.8rem;
     margin-top: 5px;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .app-wrapper {
+        padding: 10px;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .app-header {
+        padding: 10px 15px;
+        margin-bottom: 10px;
+    }
+
+    .logo h1 {
+        font-size: 1rem;
+    }
+
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Mobile View Logic:
+       By default, show Sidebar.
+       When chat is active, Sidebar gets .hidden-mobile and Chat gets .active-mobile
+    */
+
+    .sidebar {
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        display: flex;
+    }
+
+    .sidebar.hidden-mobile {
+        display: none;
+    }
+
+    .chat-area {
+        display: none;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 10;
+        border: none;
+        border-radius: 0;
+    }
+
+    .chat-area.active-mobile {
+        display: flex;
+    }
+
+    /* Back Button for Mobile */
+    .mobile-back-btn {
+        display: block !important;
+        margin-right: 10px;
+        background: none;
+        border: none;
+        color: var(--text-main);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    .chat-header-bar {
+        padding: 10px;
+    }
+
+    .input-area {
+        padding: 10px;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        /* Larger touch target */
+    }
+}
+
+/* Hide mobile back button on desktop */
+.mobile-back-btn {
+    display: none;
+}

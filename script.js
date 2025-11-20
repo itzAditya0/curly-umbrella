@@ -465,18 +465,23 @@ function renderFriendsList() {
     });
 }
 
-function selectChat(id) {
-    state.currentChatId = id;
-    els.currentChatName.textContent = `Chat with ${id}`;
+function selectFriend(friendId) {
+    state.currentChatId = friendId;
+
+    // Update UI
+    renderFriendsList();
+    renderMessages();
+
+    // Show chat interface
     els.emptyState.classList.add('hidden');
     els.chatInterface.classList.remove('hidden');
+    els.currentChatName.textContent = `Chat with ${friendId}`;
 
-    Array.from(els.friendsList.children).forEach(li => {
-        li.classList.toggle('active', li.textContent === id);
-        if (li.textContent === id) li.classList.remove('unread');
-    });
+    // Focus input
+    els.messageInput.focus();
 
-    renderMessages();
+    // Switch to chat view on mobile
+    state.setMobileView('chat');
 }
 
 // Copy ID
@@ -517,18 +522,24 @@ if (els.attachBtn) {
     els.attachBtn.addEventListener('click', () => els.fileInput.click());
 }
 
+async function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024 * 1024) {
+        alert('File too large. Max 100MB.');
+        return;
+    }
+
+    await sendFile(file);
+    els.fileInput.value = '';
+}
+
 if (els.fileInput) {
-    els.fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+}
 
-        if (file.size > 100 * 1024 * 1024) {
-            alert('File too large. Max 100MB.');
-            return;
-        }
-
-        await sendFile(file);
-        els.fileInput.value = '';
+await sendFile(file);
+els.fileInput.value = '';
     });
 }
 
