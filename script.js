@@ -536,11 +536,7 @@ async function handleFileSelect(e) {
 }
 
 if (els.fileInput) {
-}
-
-await sendFile(file);
-els.fileInput.value = '';
-    });
+    els.fileInput.addEventListener('change', handleFileSelect);
 }
 
 async function sendFile(file) {
