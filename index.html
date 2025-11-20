@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECURE_CHAT // TERMINAL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- OpenPGP.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/5.5.0/openpgp.min.js"></script>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="app-container">
+        <header>
+            <h1 class="glitch" data-text="SECURE_CHAT">SECURE_CHAT</h1>
+            <div id="connection-status" class="status offline">OFFLINE</div>
+        </header>
+
+        <!-- Setup Section -->
+        <section id="setup-section" class="active">
+            <div class="panel">
+                <h2>> INITIALIZE_KEYS</h2>
+                <p class="info-text">Upload your PGP key pair to begin secure session.</p>
+                
+                <div class="input-group">
+                    <label for="public-key-file">PUBLIC_KEY (.asc)</label>
+                    <input type="file" id="public-key-file" accept=".asc,.gpg">
+                </div>
+
+                <div class="input-group">
+                    <label for="private-key-file">PRIVATE_KEY (.asc)</label>
+                    <input type="file" id="private-key-file" accept=".asc,.gpg">
+                </div>
+
+                <div class="input-group">
+                    <label for="passphrase">PASSPHRASE</label>
+                    <input type="password" id="passphrase" placeholder="Enter private key passphrase">
+                </div>
+
+                <button id="connect-btn" class="btn primary">ESTABLISH_UPLINK</button>
+                <div id="setup-error" class="error-msg"></div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="hidden">
+            <div class="grid-layout">
+                <!-- Sidebar -->
+                <aside class="sidebar">
+                    <div class="user-info panel">
+                        <h3>> IDENTITY</h3>
+                        <div class="id-display">
+                            <span id="my-user-id">Loading...</span>
+                            <button id="copy-id-btn" class="btn-icon" title="Copy ID">[CPY]</button>
+                        </div>
+                    </div>
+
+                    <div class="friends-panel panel">
+                        <h3>> NETWORK_NODES</h3>
+                        <div class="add-friend-box">
+                            <input type="text" id="friend-id-input" placeholder="TARGET_ID" maxlength="6">
+                            <button id="add-friend-btn" class="btn small">ADD</button>
+                        </div>
+                        <ul id="friends-list">
+                            <!-- Friends will be added here -->
+                        </ul>
+                    </div>
+                </aside>
+
+                <!-- Chat Area -->
+                <main class="chat-area panel">
+                    <div id="chat-header" class="chat-header">
+                        <span id="current-chat-name">> NO_TARGET_SELECTED</span>
+                    </div>
+                    
+                    <div id="messages-container" class="messages-container">
+                        <!-- Messages go here -->
+                        <div class="system-msg">System initialized. Waiting for input...</div>
+                    </div>
+
+                    <div class="input-area">
+                        <textarea id="message-input" placeholder="Type encrypted message..." disabled></textarea>
+                        <button id="send-btn" class="btn" disabled>SEND</button>
+                    </div>
+                </main>
+            </div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
